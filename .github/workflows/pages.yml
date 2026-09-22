@@ -1,5 +1,6 @@
 # Déploie l'app (racine du repo) sur GitHub Pages.
-# Prérequis (une seule fois) : Settings → Pages → Source = "GitHub Actions".
+# Active Pages automatiquement au premier passage (enablement: true).
+# Si ça échoue : Settings → Pages → Source = "GitHub Actions", puis relancer.
 name: Deploy RPG app to GitHub Pages
 
 on:
@@ -36,6 +37,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .

@@ -34,7 +34,7 @@ node --test dice.test.js
 
 Le workflow `.github/workflows/pages.yml` déploie le repo à chaque push sur `main`.
 
-À faire **une seule fois** dans le repo GitHub : *Settings → Pages → Build and deployment → Source* : **GitHub Actions**.
+Le workflow active Pages automatiquement au premier déploiement. Si ce déploiement échoue, activer une fois *Settings → Pages → Build and deployment → Source* : **GitHub Actions**, puis relancer le workflow.
 
 L'app sera ensuite disponible sur `https://<utilisateur>.github.io/<repo>/`.
 
