@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark light" />
+  <title>Lanceur de dés</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎲%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>🎲 Lanceur de dés</h1>
+    <p class="subtitle">Choisis le nombre de dés et de faces, colore ceux que tu veux distinguer, puis lance.</p>
+  </header>
+
+  <main class="layout">
+    <!-- ============ Configuration ============ -->
+    <section class="panel" aria-labelledby="config-title">
+      <h2 id="config-title">Configuration</h2>
+
+      <div class="fields">
+        <label class="field">
+          <span>Nombre de dés</span>
+          <input id="count" type="number" min="1" max="100" value="2" inputmode="numeric" />
+        </label>
+        <span class="times" aria-hidden="true">d</span>
+        <label class="field">
+          <span>Faces</span>
+          <input id="faces" type="number" min="2" max="100" value="6" inputmode="numeric" />
+        </label>
+        <output id="notation" class="notation" for="count faces">2d6</output>
+      </div>
+
+      <div class="presets" role="group" aria-label="Types de dés courants">
+        <button type="button" class="chip" data-faces="4">d4</button>
+        <button type="button" class="chip" data-faces="6">d6</button>
+        <button type="button" class="chip" data-faces="8">d8</button>
+        <button type="button" class="chip" data-faces="10">d10</button>
+        <button type="button" class="chip" data-faces="12">d12</button>
+        <button type="button" class="chip" data-faces="20">d20</button>
+        <button type="button" class="chip" data-faces="100">d100</button>
+      </div>
+
+      <h3>Couleurs</h3>
+      <p class="hint">Sélectionne une couleur puis clique sur les dés à marquer. Clique à nouveau pour retirer la couleur.</p>
+      <div id="palette" class="palette" role="radiogroup" aria-label="Couleur à appliquer"></div>
+      <div class="palette-actions">
+        <button type="button" id="paint-all" class="btn btn-ghost">Appliquer à tous</button>
+        <button type="button" id="clear-colors" class="btn btn-ghost">Effacer les couleurs</button>
+      </div>
+
+      <h3>Dés à lancer</h3>
+      <div id="pool" class="dice-grid" aria-label="Dés avant le lancer"></div>
+
+      <div class="actions">
+        <button type="button" id="roll" class="btn btn-primary">Lancer les dés</button>
+      </div>
+    </section>
+
+    <!-- ============ Résultats ============ -->
+    <section class="panel" aria-labelledby="result-title">
+      <div class="panel-head">
+        <h2 id="result-title">Résultat</h2>
+        <label class="toggle">
+          <input type="checkbox" id="sort-results" />
+          <span>Trier par valeur</span>
+        </label>
+      </div>
+
+      <div id="results" class="results" aria-live="polite">
+        <p class="empty">Aucun lancer pour l'instant.</p>
+      </div>
+
+      <div class="panel-head">
+        <h3>Historique</h3>
+        <button type="button" id="clear-history" class="btn btn-ghost btn-sm">Vider</button>
+      </div>
+      <ol id="history" class="history"></ol>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Application front-only, aucune donnée envoyée. Les tirages utilisent <code>crypto.getRandomValues</code>.</p>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
