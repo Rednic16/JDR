@@ -178,20 +178,54 @@ h3 { font-size: 0.95rem; margin-top: 20px; text-transform: uppercase; letter-spa
 }
 .die.result { cursor: default; }
 .die.result:hover { transform: none; }
-.die.rolling { animation: shake 0.45s ease-in-out; }
 .die.max { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px gold; }
 .die.min { opacity: 0.75; }
 
-@keyframes shake {
-  0%   { transform: rotate(0deg) scale(1); }
-  25%  { transform: rotate(-12deg) scale(1.08); }
-  50%  { transform: rotate(10deg) scale(0.96); }
-  75%  { transform: rotate(-6deg) scale(1.04); }
-  100% { transform: rotate(0deg) scale(1); }
+/* ---- Animation de lancer ---- */
+.results .dice-grid { perspective: 700px; }
+.die.rolling {
+  animation: tumble var(--roll-duration, 0.9s) cubic-bezier(0.22, 0.9, 0.3, 1) both;
+  animation-delay: var(--roll-delay, 0ms);
+  will-change: transform, filter;
+}
+.die.rolling .idx { opacity: 0; }
+.die.landed { animation: settle 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.die.landed.max { animation: settle 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both, glow-max 0.9s ease-out 0.1s both; }
+.total-card .value.pending, .group-head .sum.pending { color: var(--text-muted); }
+.total-card .value.pop, .group-head .sum.pop { display: inline-block; animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+@keyframes tumble {
+  0%   { transform: translateY(-70px) rotateX(-160deg) rotateY(60deg) rotateZ(-200deg) scale(0.55); opacity: 0; filter: blur(3px); }
+  12%  { opacity: 1; }
+  32%  { transform: translateY(10px) rotateX(-40deg) rotateY(-30deg) rotateZ(-70deg) scale(1.08); filter: blur(1.5px); }
+  52%  { transform: translateY(-22px) rotateX(25deg) rotateY(18deg) rotateZ(25deg) scale(0.97); filter: blur(0.8px); }
+  70%  { transform: translateY(5px) rotateX(-10deg) rotateY(-8deg) rotateZ(-9deg) scale(1.03); filter: blur(0); }
+  86%  { transform: translateY(-5px) rotateX(4deg) rotateY(3deg) rotateZ(3deg) scale(0.99); }
+  100% { transform: none; filter: none; }
+}
+@keyframes settle {
+  0%   { transform: scale(1.22) translateY(-3px); }
+  100% { transform: none; }
+}
+@keyframes glow-max {
+  0%   { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px gold, 0 0 24px 8px rgba(255, 215, 0, 0.9); }
+  100% { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px gold, 0 0 0 0 rgba(255, 215, 0, 0); }
+}
+@keyframes pop {
+  0%   { transform: scale(0.7); opacity: 0.3; }
+  100% { transform: none; opacity: 1; }
 }
 
+@keyframes press {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+.btn-primary:active { transform: scale(0.97); }
+.btn-primary.pressed { animation: press 0.25s ease-out; }
+
 @media (prefers-reduced-motion: reduce) {
-  .die.rolling { animation: none; }
+  .die.rolling, .die.landed, .die.landed.max, .total-card .value.pop, .group-head .sum.pop, .btn-primary.pressed { animation: none; }
   .die { transition: none; }
 }
 

@@ -6,6 +6,7 @@ Application **front-only** (HTML / CSS / JavaScript, sans build ni dépendance) 
 
 - Lancer **X dés à X faces** : de 1 à 100 dés, de 2 à 100 faces (raccourcis d4, d6, d8, d10, d12, d20, d100).
 - **Colorer les dés avant le lancer** : sélectionner une couleur dans la palette (8 couleurs), cliquer sur les dés à marquer. Les couleurs sont conservées après le lancer, et les résultats sont regroupés par couleur avec sous-total.
+- Animation de lancer : chaque dé tombe et tourbillonne avec des chiffres qui défilent, puis se pose en vague ; les sous-totaux et le total se révèlent une fois les dés posés (désactivée si le système demande moins d'animations).
 - Total général, mise en évidence des résultats max (doré) et min (atténué), tri optionnel par valeur.
 - Historique des 30 derniers lancers (conservé dans le navigateur via `localStorage`).
 - Raccourci : `Entrée` ou `Espace` hors d'un champ pour relancer.

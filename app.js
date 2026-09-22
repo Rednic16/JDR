@@ -1,11 +1,16 @@
 import {
   COLORS, MAX_DICE, MAX_FACES, MIN_FACES,
-  clampInt, colorById, createPool, groupByColor, notation, rollPool, total,
+  clampInt, colorById, createPool, groupByColor, notation, randomFace, rollPool, total,
 } from "./dice.js";
 
 const STORAGE_KEY = "dice-roller:v1";
 const HISTORY_LIMIT = 30;
 const HISTORY_DICE_SHOWN = 20; // au-delà, un badge "+N" avec le détail au survol
+const ROLL_DURATION = 900;      // ms : durée du tumble d'un dé
+const ROLL_STAGGER = 28;        // ms : décalage entre deux dés successifs
+const ROLL_STAGGER_MAX = 700;   // ms : décalage max (pour 100 dés)
+const FLICKER_INTERVAL = 55;    // ms : cadence de défilement des chiffres pendant le roulement
+const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // ---------- État ----------
 const state = {
@@ -68,6 +73,8 @@ function save() {
 }
 
 // ---------- Rendu ----------
+let animationToken = 0; // identifiant du lancer animé en cours
+
 function dieClass(die) {
   return die.color ? "die colored" : "die";
 }
@@ -136,6 +143,7 @@ function renderPool() {
 }
 
 function renderResults(animate = false) {
+  animationToken++; // stoppe une éventuelle animation en cours sur l'ancien rendu
   el.results.innerHTML = "";
   if (!state.lastRoll) {
     el.results.innerHTML = `<p class="empty">Aucun lancer pour l'instant.</p>`;
@@ -143,12 +151,15 @@ function renderResults(animate = false) {
   }
 
   const sum = total(state.lastRoll);
+  const doAnimate = animate && !reduceMotion();
   const card = document.createElement("div");
   card.className = "total-card";
   card.innerHTML = `
     <span class="label">${notation(state.lastRoll.length, state.lastRoll[0].faces)} — total</span>
-    <span class="value">${sum}</span>`;
+    <span class="value${doAnimate ? " pending" : ""}">${doAnimate ? "…" : sum}</span>`;
   el.results.appendChild(card);
+  const totalEl = card.querySelector(".value");
+  const rollingDice = []; // { el, die, landAt }
 
   const groups = groupByColor(state.lastRoll);
   const multiGroup = groups.length > 1;
@@ -169,9 +180,11 @@ function renderResults(animate = false) {
     detail.textContent = `${g.count} dé${g.count > 1 ? "s" : ""}`;
     const s = document.createElement("span");
     s.className = "sum";
-    s.textContent = multiGroup ? `= ${g.total}` : "";
+    s.textContent = multiGroup ? (doAnimate ? "…" : `= ${g.total}`) : "";
+    if (multiGroup && doAnimate) s.classList.add("pending");
     head.append(dot, name, detail, s);
     wrap.appendChild(head);
+    const groupSum = multiGroup ? { el: s, remaining: g.dice.length, total: g.total } : null;
 
     const grid = document.createElement("div");
     grid.className = "dice-grid";
@@ -179,18 +192,94 @@ function renderResults(animate = false) {
     for (const die of dice) {
       const d = document.createElement("div");
       d.className = dieClass(die) + " result";
-      if (animate) d.classList.add("rolling");
-      if (die.value === die.faces) d.classList.add("max");
-      else if (die.value === 1) d.classList.add("min");
       applyColorStyle(d, die.color);
       const c = colorById(die.color);
       d.setAttribute("aria-label", `Dé ${die.id + 1}${c ? ` ${c.label}` : ""} : ${die.value}`);
-      d.innerHTML = `<span class="idx">${die.id + 1}</span>${die.value}`;
+      if (doAnimate) {
+        // Départ décalé selon l'index d'origine du dé (vague de gauche à droite), avec un léger aléa.
+        const delay = Math.min(die.id * ROLL_STAGGER, ROLL_STAGGER_MAX) + Math.random() * 90;
+        d.classList.add("rolling");
+        d.style.setProperty("--roll-delay", `${Math.round(delay)}ms`);
+        d.style.setProperty("--roll-duration", `${ROLL_DURATION}ms`);
+        d.innerHTML = `<span class="idx">${die.id + 1}</span><span class="face">${randomFace(die.faces)}</span>`;
+        rollingDice.push({ el: d, die, landAt: delay + ROLL_DURATION, groupSum });
+      } else {
+        markExtremes(d, die);
+        d.innerHTML = `<span class="idx">${die.id + 1}</span><span class="face">${die.value}</span>`;
+      }
       grid.appendChild(d);
     }
     wrap.appendChild(grid);
     el.results.appendChild(wrap);
   }
+
+  if (doAnimate) runRollAnimation(rollingDice, totalEl, sum);
+}
+
+function markExtremes(node, die) {
+  if (die.value === die.faces) node.classList.add("max");
+  else if (die.value === 1) node.classList.add("min");
+}
+
+/**
+ * Fait défiler des chiffres aléatoires sur chaque dé pendant son tumble,
+ * puis fige la valeur finale au moment où il se pose. Le total s'affiche
+ * en comptant jusqu'à la somme une fois le dernier dé posé.
+ */
+function runRollAnimation(rollingDice, totalEl, sum) {
+  const token = ++animationToken;
+  const start = performance.now();
+  let lastFlicker = 0;
+  let pending = rollingDice.slice();
+
+  function frame(now) {
+    if (token !== animationToken) return; // un nouveau lancer a pris le relais
+    const elapsed = now - start;
+    const flick = now - lastFlicker >= FLICKER_INTERVAL;
+    if (flick) lastFlicker = now;
+    const still = [];
+    for (const r of pending) {
+      if (elapsed >= r.landAt) {
+        r.el.classList.remove("rolling");
+        r.el.classList.add("landed");
+        r.el.querySelector(".face").textContent = r.die.value;
+        markExtremes(r.el, r.die);
+        if (r.groupSum && --r.groupSum.remaining === 0) {
+          r.groupSum.el.textContent = `= ${r.groupSum.total}`;
+          r.groupSum.el.classList.remove("pending");
+          r.groupSum.el.classList.add("pop");
+        }
+      } else {
+        if (flick && elapsed >= r.landAt - ROLL_DURATION) {
+          r.el.querySelector(".face").textContent = randomFace(r.die.faces);
+        }
+        still.push(r);
+      }
+    }
+    pending = still;
+    if (pending.length) {
+      requestAnimationFrame(frame);
+    } else {
+      countUp(totalEl, sum, token);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function countUp(node, target, token) {
+  const duration = Math.min(600, 150 + target * 4);
+  const start = performance.now();
+  node.classList.remove("pending");
+  node.classList.add("pop");
+  function step(now) {
+    if (token !== animationToken) return;
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    node.textContent = Math.round(target * eased);
+    if (t < 1) requestAnimationFrame(step);
+    else node.textContent = target;
+  }
+  requestAnimationFrame(step);
 }
 
 function renderHistory() {
@@ -260,6 +349,9 @@ function paintAll(colorId) {
 }
 
 function roll() {
+  el.roll.classList.remove("pressed");
+  void el.roll.offsetWidth; // relance l'animation CSS
+  el.roll.classList.add("pressed");
   state.lastRoll = rollPool(state.pool);
   state.history.unshift({
     count: state.count,
